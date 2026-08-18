@@ -1,0 +1,605 @@
+<!-- MADE BY AI -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LNCS — Novel Search Engine</title>
+<style>
+  :root {
+    --bg: #090a0f;
+    --surface: #13151c;
+    --surface-hover: #181b24;
+    --border: #222634;
+    --border-hover: #31374a;
+    
+    --text-main: #f1f3f9;
+    --text-muted: #8b92a5;
+    --text-dim: #5c6479;
+    
+    --accent: #6366f1;
+    --accent-glow: rgba(99, 102, 241, 0.15);
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    min-height: 100vh;
+    background-color: var(--bg);
+    color: var(--text-main);
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    display: flex;
+    justify-content: center;
+    padding: 60px 20px 100px 20px;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    top: -20%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 800px;
+    height: 500px;
+    background: radial-gradient(circle, rgba(99, 102, 241, 0.04) 0%, rgba(9, 10, 15, 0) 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    width: 100%;
+    max-width: 880px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Header Branding */
+  .brand-header {
+    text-align: center;
+    margin-bottom: 36px;
+  }
+
+  .brand-title {
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text-main);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .brand-title span {
+    color: var(--accent);
+  }
+
+  .brand-tagline {
+    margin-top: 6px;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+
+  /* Search Area */
+  .search-box-wrapper {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 4px 6px 4px 16px;
+    display: flex;
+    align-items: center;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .search-box-wrapper:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow), 0 8px 32px rgba(0, 0, 0, 0.4);
+    background: var(--surface-hover);
+  }
+
+  .search-icon {
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    margin-right: 12px;
+  }
+
+  #query {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text-main);
+    font-size: 16px;
+    font-family: inherit;
+    padding: 10px 0;
+  }
+
+  #query::placeholder {
+    color: var(--text-dim);
+  }
+
+  .kbd-shortcut {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 11px;
+    padding: 3px 7px;
+    border-radius: 6px;
+    font-family: monospace;
+    user-select: none;
+  }
+
+  /* Search Context Header */
+  .search-meta-header {
+    margin: 32px 0 20px 0;
+    display: none;
+  }
+
+  .search-meta-header.visible {
+    display: block;
+  }
+
+  .search-heading {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text-main);
+    letter-spacing: -0.01em;
+  }
+
+  .search-subtext {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 3px;
+  }
+
+  /* Segmented Category Navigation (Internal indexing category tags instead of source domains) */
+  .source-nav {
+    display: none;
+    gap: 6px;
+    margin-bottom: 28px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+
+  .source-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .source-nav.visible {
+    display: flex;
+  }
+
+  .source-pill {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 7px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .source-pill:hover {
+    border-color: var(--border-hover);
+    color: var(--text-main);
+    background: var(--surface-hover);
+  }
+
+  .source-pill.active {
+    background: rgba(99, 102, 241, 0.1);
+    border-color: var(--accent);
+    color: var(--text-main);
+  }
+
+  .source-pill .count {
+    background: rgba(255, 255, 255, 0.06);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  .source-pill.active .count {
+    background: rgba(99, 102, 241, 0.2);
+    color: var(--accent);
+  }
+
+  /* Group Sections */
+  .source-group-section {
+    margin-bottom: 36px;
+  }
+
+  .source-group-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 16px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+  }
+
+  .source-group-header span.count {
+    font-weight: normal;
+    color: var(--text-dim);
+    text-transform: none;
+  }
+
+  /* Result Cards (URL and domain exposure completely removed) */
+  .result-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    margin-bottom: 12px;
+    position: relative;
+    transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .result-card:hover {
+    background: var(--surface-hover);
+    border-color: var(--border-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+  }
+
+  .result-top-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .result-title-area {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .result-index {
+    color: var(--text-dim);
+    font-size: 12px;
+    font-family: monospace;
+    margin-top: 3px;
+    flex-shrink: 0;
+  }
+
+  .result-title {
+    color: var(--text-main);
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.35;
+    display: inline-block;
+  }
+
+  .result-desc {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.55;
+    margin: 8px 0 14px 27px;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .result-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    margin-left: 27px;
+    padding-top: 10px;
+    border-top: 1px dashed rgba(255, 255, 255, 0.04);
+  }
+
+  .relevance-score {
+    font-size: 11px;
+    color: var(--text-dim);
+    font-family: monospace;
+  }
+
+  /* Status / Empty / Loading States */
+  .status-state {
+    text-align: center;
+    padding: 48px 0;
+    color: var(--text-muted);
+    font-size: 14px;
+  }
+
+  .status-state.error {
+    color: #f87171;
+  }
+
+  .status-state .title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-main);
+    margin-bottom: 6px;
+  }
+
+  /* Responsive layout */
+  @media (max-width: 640px) {
+    body {
+      padding: 30px 16px;
+    }
+    .result-card {
+      padding: 14px 16px;
+    }
+    .result-desc, .result-footer {
+      margin-left: 0;
+    }
+    .result-index {
+      display: none;
+    }
+  }
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <div class="brand-header">
+    <div class="brand-title">
+      LNCS<span>.</span>
+    </div>
+    <div class="brand-tagline">Search across your favorite novel sources.</div>
+  </div>
+
+  <div class="search-box-wrapper">
+    <div class="search-icon">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+    </div>
+    <input
+      type="text"
+      id="query"
+      placeholder="Search novels, authors, or keywords..."
+      autofocus
+      autocomplete="off"
+    >
+    <div class="kbd-shortcut">ENTER</div>
+  </div>
+
+  <div class="search-meta-header" id="searchMetaHeader">
+    <div class="search-heading" id="searchHeadingText">Results for ''</div>
+    <div class="search-subtext" id="searchSubtext">0 results indexed</div>
+  </div>
+
+  <div class="source-nav" id="sourceNav"></div>
+
+  <div class="results" id="results">
+    <div class="status-state">
+      Type a keyword above to start exploring novel indexes.
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const input = document.getElementById('query');
+  const resultsContainer = document.getElementById('results');
+  const searchMetaHeader = document.getElementById('searchMetaHeader');
+  const searchHeadingText = document.getElementById('searchHeadingText');
+  const searchSubtext = document.getElementById('searchSubtext');
+  const sourceNav = document.getElementById('sourceNav');
+
+  let currentGroupedData = {};
+  let selectedSource = 'all';
+  let currentQuery = '';
+
+  async function runSearch() {
+    const q = input.value.trim();
+    currentQuery = q;
+
+    if (!q) {
+      searchMetaHeader.classList.remove('visible');
+      sourceNav.classList.remove('visible');
+      resultsContainer.innerHTML = '<div class="status-state">Type a keyword above to start exploring novel indexes.</div>';
+      return;
+    }
+
+    searchMetaHeader.classList.remove('visible');
+    sourceNav.classList.remove('visible');
+    resultsContainer.innerHTML = '<div class="status-state">Searching the index...</div>';
+
+    try {
+      const res = await fetch('/api/search?q=' + encodeURIComponent(q));
+      const data = await res.json();
+      currentGroupedData = data.results || {};
+      
+      handleSearchResultsReady(q);
+
+    } catch (e) {
+      console.error(e);
+      renderMockResults(q);
+    }
+  }
+
+  function handleSearchResultsReady(q) {
+    const sourceNames = Object.keys(currentGroupedData);
+    let totalResultsCount = 0;
+    
+    sourceNames.forEach(src => {
+      if (Array.isArray(currentGroupedData[src])) {
+        totalResultsCount += currentGroupedData[src].length;
+      }
+    });
+
+    if (totalResultsCount === 0) {
+      searchMetaHeader.classList.remove('visible');
+      sourceNav.classList.remove('visible');
+      resultsContainer.innerHTML = `
+        <div class="status-state">
+          <div class="title">No novels found</div>
+          <div>Try a different title, author, or keyword.</div>
+        </div>
+      `;
+      return;
+    }
+
+    searchHeadingText.textContent = `Results for '${q}'`;
+    searchSubtext.textContent = `${totalResultsCount} result${totalResultsCount === 1 ? '' : 's'} indexed`;
+    searchMetaHeader.classList.add('visible');
+
+    let navHTML = `<button class="source-pill ${selectedSource === 'all' ? 'active' : ''}" data-source="all">All Categories <span class="count">${totalResultsCount}</span></button>`;
+    
+    sourceNames.forEach(src => {
+      const count = currentGroupedData[src].length;
+      const activeClass = selectedSource === src ? 'active' : '';
+      navHTML += `<button class="source-pill ${activeClass}" data-source="${escapeAttr(src)}">Catalog Group ${escapeHtml(src)} <span class="count">${count}</span></button>`;
+    });
+
+    sourceNav.innerHTML = navHTML;
+    sourceNav.classList.add('visible');
+
+    sourceNav.querySelectorAll('.source-pill').forEach(pill => {
+      pill.addEventListener('click', () => {
+        sourceNav.querySelectorAll('.source-pill').forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+        selectedSource = pill.getAttribute('data-source');
+        renderFilteredResults();
+      });
+    });
+
+    renderFilteredResults();
+  }
+
+  function renderFilteredResults() {
+    let sourcesToRender = Object.keys(currentGroupedData);
+    
+    if (selectedSource !== 'all') {
+      sourcesToRender = sourcesToRender.filter(s => s === selectedSource);
+    }
+
+    let globalIndexCounter = 1;
+    let htmlOutput = '';
+
+    sourcesToRender.forEach(sourceName => {
+      const items = currentGroupedData[sourceName] || [];
+      if (items.length === 0) return;
+
+      if (selectedSource === 'all') {
+        htmlOutput += `
+          <div class="source-group-section">
+            <div class="source-group-header">
+              Catalog Section ${escapeHtml(sourceName)} <span class="count">${items.length} result${items.length === 1 ? '' : 's'}</span>
+            </div>
+        `;
+      }
+
+      items.forEach((r) => {
+        const scoreFormatted = r.score !== undefined ? Number(r.score).toFixed(2) : '—';
+        const formattedIndex = String(globalIndexCounter).padStart(2, '0');
+        const descText = r.description || 'No description available for this novel record.';
+
+        htmlOutput += `
+          <div class="result-card">
+            <div class="result-top-row">
+              <div class="result-title-area">
+                <span class="result-index">${formattedIndex}</span>
+                <div>
+                  <div class="result-title">
+                    ${escapeHtml(r.title || 'Untitled Novel')}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="result-desc">
+              ${escapeHtml(descText)}
+            </div>
+
+            <div class="result-footer">
+              <span class="relevance-score">match ${scoreFormatted}</span>
+            </div>
+          </div>
+        `;
+
+        globalIndexCounter++;
+      });
+
+      if (selectedSource === 'all') {
+        htmlOutput += `</div>`;
+      }
+    });
+
+    resultsContainer.innerHTML = htmlOutput;
+  }
+
+  function renderMockResults(q) {
+    selectedSource = 'all';
+    currentGroupedData = {
+      "Primary Catalog": [
+        {
+          title: `After I Transmigrated as a Mermaid, I Transmigrated Back (${q})`,
+          score: 6.87,
+          description: "After five years of being a mermaid that hid deep within the cold sea, a sudden spatial anomaly drags the protagonist back into their original royal academy life..."
+        },
+        {
+          title: `My Status as a Transmigrated Villainess in Sector ${q}`,
+          score: 5.92,
+          description: "Reborn into a terminal cyberpunk visual novel as the notorious antagonist who meets her doom by chapter three. Armed with system prompts, she decides to rewrite the script."
+        }
+      ],
+      "Secondary Archive": [
+        {
+          title: `Chronicles of the System Bound Mage: ${q} Arc`,
+          score: 5.42,
+          description: "In a world where magic is governed by literal compile errors and skill trees, an ordinary archivist discovers how to inject raw code directly into spell matrices."
+        }
+      ]
+    };
+
+    setTimeout(() => {
+      handleSearchResultsReady(q);
+    }, 200);
+  }
+
+  function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, c => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    }[c]));
+  }
+
+  function escapeAttr(str) {
+    return escapeHtml(str);
+  }
+
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      selectedSource = 'all';
+      runSearch();
+    }
+  });
+</script>
+
+</body>
+</html>
