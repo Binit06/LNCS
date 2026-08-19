@@ -71,9 +71,9 @@ This is an ongoing learning project, so the architecture will probably change qu
 ## Tech Stack
 
 * **Crawler:** Python
-* **Storage:** SQLite / Redis
+* **Storage:** PostgreSQL / Redis
 * **Indexing:** Inverted Index + N-grams
-* **Scoring:** BM25
+* **Scoring:** BM25 + TF-IDF
 
 ## Status
 

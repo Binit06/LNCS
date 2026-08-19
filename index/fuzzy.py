@@ -19,7 +19,7 @@ def get_candidates(db, word: str):
     if not word_ngrams:
         return []
 
-    placeholders = ",".join(["?"] * len(word_ngrams))
+    placeholders = ",".join(["%s"] * len(word_ngrams))
     query = f"""
         SELECT term, COUNT(*) AS matches
         FROM term_ngrams

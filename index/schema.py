@@ -1,39 +1,31 @@
 def setup_schema(db):
     db.execute("""
         CREATE TABLE IF NOT EXISTS documents (
-            doc_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            doc_id SERIAL PRIMARY KEY,
             url TEXT UNIQUE,
-            novel_name TEXT,
+            novel_name VARCHAR(255),
             description TEXT,
-            source TEXT,
+            source VARCHAR(255),
             doc_length INTEGER DEFAULT 0,
-            last_crawled_at TEXT,
-            content_hash TEXT
+            last_crawled_at VARCHAR(255),
+            content_hash VARCHAR(255)
         )
     """)
 
     db.execute("""
         CREATE TABLE IF NOT EXISTS inverted_index (
-            term TEXT,
-            doc_id INTEGER,
-            frequency INTEGER,
-            FOREIGN KEY(doc_id) REFERENCES documents(doc_id)
+            term VARCHAR(255),
+            doc_id INTEGER REFERENCES documents(doc_id),
+            frequency INTEGER
         )
     """)
 
     db.execute("""
         CREATE TABLE IF NOT EXISTS term_ngrams (
-            ngram TEXT,
-            term TEXT
+            ngram VARCHAR(255),
+            term VARCHAR(255)
         )
     """)
 
     db.execute("CREATE INDEX IF NOT EXISTS idx_term ON inverted_index(term)")
     db.execute("CREATE INDEX IF NOT EXISTS idx_ngram ON term_ngrams(ngram)")
-
-    try:
-        db.execute("ALTER TABLE documents ADD COLUMN doc_length INTEGER DEFAULT 0")
-        db.execute("ALTER TABLE documents ADD COLUMN last_crawled_at TEXT")
-        db.execute("ALTER TABLE documents ADD COLUMN content_hash TEXT")
-    except Exception:
-        pass

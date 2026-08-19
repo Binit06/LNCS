@@ -6,6 +6,9 @@ from crawler.seeder import Seeder
 from index import SearchIndex
 from storage.database import Database
 from config.site_registry import SITE_REGISTRY
+from dotenv_vault import load_dotenv
+
+load_dotenv()
 
 logging.basicConfig(
     level=logging.INFO,
@@ -34,6 +37,7 @@ def build_seeders(controller: CrawlController):
 
 def main():
     db = Database("search.db")
+    return;
     index = SearchIndex(db)
 
     controller = CrawlController(

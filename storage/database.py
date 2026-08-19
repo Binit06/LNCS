@@ -1,11 +1,17 @@
-import sqlite3
+import os
+import psycopg
 import threading
 from contextlib import contextmanager
 
 class Database:
     def __init__(self, db_name="search.db") -> None:
-        self.conn = sqlite3.connect(db_name, check_same_thread=False)
-        self.conn.execute("PRAGMA journal_mode=WAL")
+        self.username = os.getenv("POSTGRES_USERNAME")
+        self.password = os.getenv("POSTGRES_PASSWD")
+        self.dbname = os.getenv("POSTGRES_DBNAME")
+        self.host = os.getenv("POSTGRES_HOST")
+        self.port = os.getenv("POSTGRES_PORT")
+
+        self.conn = psycopg.connect(dbname=self.dbname, user=self.username, password=self.password, host=self.host, port=self.port);
         self.cursor = self.conn.cursor()
 
         self.lock = threading.Lock()

@@ -12,7 +12,7 @@ def _resolve_tokens(db, query: str):
         if word in STOP_WORDS:
             continue
 
-        exact_match = bool(db.query("SELECT 1 FROM inverted_index WHERE term = ? LIMIT 1", (word,)))
+        exact_match = bool(db.query("SELECT 1 FROM inverted_index WHERE term = %s LIMIT 1", (word,)))
 
         if (exact_match):
             tokens.append(word)
@@ -29,7 +29,7 @@ def search(db, query: str, k1: float = 1.5, b: float = 0.75):
         return []
 
     num_tokens = len(tokens)
-    placeholders = ",".join(["?"] * num_tokens)
+    placeholders = ",".join(["%s"] * num_tokens)
 
     (total_docs,) = db.query("SELECT COUNT(*) FROM documents", ())[0]
     if total_docs == 0:

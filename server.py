@@ -15,6 +15,9 @@ from flask import Flask, jsonify, request, send_from_directory
 
 from storage.database import Database
 from index import SearchIndex
+from dotenv_vault import load_dotenv
+
+load_dotenv()
 
 try:
     import redis
