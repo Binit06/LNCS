@@ -1,4 +1,3 @@
-<!-- MADE BY AI -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -160,7 +159,7 @@
     margin-top: 3px;
   }
 
-  /* Segmented Category Navigation (Internal indexing category tags instead of source domains) */
+  /* Segmented Category Navigation */
   .source-nav {
     display: none;
     gap: 6px;
@@ -244,7 +243,7 @@
     text-transform: none;
   }
 
-  /* Result Cards (URL and domain exposure completely removed) */
+  /* Result Cards */
   .result-card {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -429,13 +428,20 @@
     try {
       const res = await fetch('/api/search?q=' + encodeURIComponent(q));
       const data = await res.json();
-      currentGroupedData = data.results || {};
+      
+      // Expecting backend to return an object mapping sources to result arrays, e.g. { "SourceA": [...] }
+      currentGroupedData = data.results || data; 
       
       handleSearchResultsReady(q);
 
     } catch (e) {
       console.error(e);
-      renderMockResults(q);
+      resultsContainer.innerHTML = `
+        <div class="status-state error">
+          <div class="title">Connection Error</div>
+          <div>Failed to fetch search results from the server.</div>
+        </div>
+      `;
     }
   }
 
@@ -548,35 +554,6 @@
     });
 
     resultsContainer.innerHTML = htmlOutput;
-  }
-
-  function renderMockResults(q) {
-    selectedSource = 'all';
-    currentGroupedData = {
-      "Primary Catalog": [
-        {
-          title: `After I Transmigrated as a Mermaid, I Transmigrated Back (${q})`,
-          score: 6.87,
-          description: "After five years of being a mermaid that hid deep within the cold sea, a sudden spatial anomaly drags the protagonist back into their original royal academy life..."
-        },
-        {
-          title: `My Status as a Transmigrated Villainess in Sector ${q}`,
-          score: 5.92,
-          description: "Reborn into a terminal cyberpunk visual novel as the notorious antagonist who meets her doom by chapter three. Armed with system prompts, she decides to rewrite the script."
-        }
-      ],
-      "Secondary Archive": [
-        {
-          title: `Chronicles of the System Bound Mage: ${q} Arc`,
-          score: 5.42,
-          description: "In a world where magic is governed by literal compile errors and skill trees, an ordinary archivist discovers how to inject raw code directly into spell matrices."
-        }
-      ]
-    };
-
-    setTimeout(() => {
-      handleSearchResultsReady(q);
-    }, 200);
   }
 
   function escapeHtml(str) {

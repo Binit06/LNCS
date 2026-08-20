@@ -41,32 +41,6 @@ STATIC_DIR = Path(__file__).parent / "search_ui"
 
 
 # --------------------------------------------------
-# Redis
-# --------------------------------------------------
-
-redis_client = None
-
-if redis:
-    try:
-        redis_client = redis.Redis(
-            host="localhost",
-            port=6379,
-            decode_responses=True
-        )
-
-        redis_client.ping()
-
-        logger.info("Redis connected")
-
-    except Exception:
-        logger.warning(
-            "Redis not reachable -- live crawl stats will be disabled"
-        )
-
-        redis_client = None
-
-
-# --------------------------------------------------
 # Frontend
 # --------------------------------------------------
 
@@ -80,7 +54,7 @@ def home():
 # --------------------------------------------------
 
 @app.route("/api/search")
-def search():
+def search_api():
     query = request.args.get("q", "").strip()
 
     # Empty query
@@ -105,55 +79,6 @@ def search():
             "query": query,
             "results": {},
             "error": "Search failed"
-        }), 500
-
-
-# --------------------------------------------------
-# Crawl / index statistics
-# --------------------------------------------------
-
-@app.route("/api/stats")
-def stats():
-    try:
-        doc_count = db.query(
-            "SELECT COUNT(*) FROM documents"
-        )[0][0]
-
-        crawl_stats = {}
-
-        if redis_client:
-            try:
-                keys = {
-                    "requests": "crawl:request_started",
-                    "successful": "crawl:request_success",
-                    "failed": "crawl:request_failed",
-                    "pages_crawled": "crawl:page_crawled",
-                    "urls_discovered": "crawl:url_discovered",
-                }
-
-                for label, redis_key in keys.items():
-                    value = redis_client.get(redis_key)
-                    crawl_stats[label] = int(value) if value else 0
-
-            except Exception as e:
-                logger.warning(
-                    f"Failed to read crawl stats: {e}"
-                )
-
-        return jsonify({
-            "indexed_documents": doc_count,
-            "crawl": crawl_stats,
-            "redis_connected": redis_client is not None
-        })
-
-    except Exception:
-        logger.exception("Failed to fetch stats")
-
-        return jsonify({
-            "indexed_documents": 0,
-            "crawl": {},
-            "redis_connected": False,
-            "error": "Failed to fetch stats"
         }), 500
 
 
