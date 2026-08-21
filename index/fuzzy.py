@@ -1,3 +1,7 @@
+#I don't understand this process much as of now and I would like to change some of these 
+#So will implement trie and remove partial word recognition
+#Plan to use trie to load the inverted_index into the database and then just select * on those inverted idx
+#Improve the search time as of now while removing the complexities
 from index.tokenizer import ngrams
 
 def levenshtein(a: str, b: str):

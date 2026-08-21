@@ -31,6 +31,7 @@ def _resolve_tokens(db, query: str):
     return list(tokens)
 
 def search(db, query: str, k1: float = 1.5, b: float = 0.75):
+    s = time.perf_counter()
     tokens = _resolve_tokens(db, query)
     if not tokens:
         return []
@@ -41,16 +42,24 @@ def search(db, query: str, k1: float = 1.5, b: float = 0.75):
     (total_docs,) = db.query("SELECT COUNT(*) FROM documents", ())[0];
     if total_docs == 0:
         return []
+    e = time.perf_counter()
+    print(f"First Compute took : {e - s}")
+    s = time.perf_counter()
     df_rows = db.query(f"""
     SELECT term, COUNT(DISTINCT doc_id)
     FROM inverted_index
     WHERE term IN ({placeholders})
     GROUP BY term
     """, tokens)
+    e = time.perf_counter()
+    print(f"Count distinct query took : {e - s}")
 
+    s = time.perf_counter()
     doc_freq = {term: n for term, n in df_rows}
     term_idf = {term: idf(total_docs, doc_freq.get(term, 0)) for term in tokens}
     print(term_idf)
+    e = time.perf_counter()
+    print(f"freq and term_idf calculation took : {e - s}")
 
     s = time.perf_counter()
     rows = db.query(f"""
@@ -87,6 +96,7 @@ def search(db, query: str, k1: float = 1.5, b: float = 0.75):
     e = time.perf_counter();
     print(f"Time take for final query: {e - s}")
 
+    s = time.perf_counter()
     grouped = {}
     for row in rows:
         title, source, url, description, score = row[0], row[1], row[2], row[3], row[4]
@@ -97,5 +107,7 @@ def search(db, query: str, k1: float = 1.5, b: float = 0.75):
             "description": description,
             "score": score
         })
+    e = time.perf_counter()
+    print(f"Time take for final grouping: {e - s}")
 
     return grouped

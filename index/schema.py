@@ -29,3 +29,5 @@ def setup_schema(db):
 
     db.execute("CREATE INDEX IF NOT EXISTS idx_term ON inverted_index(term)")
     db.execute("CREATE INDEX IF NOT EXISTS idx_ngram ON term_ngrams(ngram)")
+    db.execute("CREATE INDEX IF NOT EXISTS idx_inverted_doc_id ON inverted_index(doc_id)")
+    db.execute("CREATE INDEX IF NOT EXISTS idx_inverted_term_doc ON inverted_index(term, doc_id) INCLUDE (frequency)")

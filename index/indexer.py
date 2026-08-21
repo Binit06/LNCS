@@ -36,11 +36,12 @@ def add_page(db, url: str, novel_name: str, description: str, source: str, conte
                 """
                 INSERT INTO documents(url, novel_name, description, source, doc_length, last_crawled_at, content_hash)
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
+                RETURNING doc_id
                 """,
                 (url, novel_name, description, source, doc_length, now, content_hash)
             )
 
-            doc_id = cursor.lastrowid
+            doc_id = cursor.fetchone()[0]
 
         postings = [
             (term, doc_id, count)

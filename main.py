@@ -37,7 +37,6 @@ def build_seeders(controller: CrawlController):
 
 def main():
     db = Database("search.db")
-    return;
     index = SearchIndex(db)
 
     controller = CrawlController(

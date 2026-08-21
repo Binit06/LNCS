@@ -1,6 +1,7 @@
 import os
 import psycopg
 import threading
+import time
 from contextlib import contextmanager
 
 class Database:
@@ -11,25 +12,72 @@ class Database:
         self.host = os.getenv("POSTGRES_HOST")
         self.port = os.getenv("POSTGRES_PORT")
 
-        self.conn = psycopg.connect(dbname=self.dbname, user=self.username, password=self.password, host=self.host, port=self.port);
-        self.cursor = self.conn.cursor()
+        self.conn = None
+        self.cursor = None
 
         self.lock = threading.Lock()
 
+        self._connect()
+
+    def _connect(self):
+        if self.conn:
+            try:
+                self.conn.close()
+            except Exception:
+                pass
+
+        self.conn = psycopg.connect(dbname=self.dbname, user=self.username, password=self.password, host=self.host, port=self.port);
+        self.cursor = self.conn.cursor()
+
     def execute(self, query, params=()):
-        with self.lock:
-            self.cursor.execute(query, params)
-            self.conn.commit()
+        for attempt in range(1, 4):
+            try:
+                with self.lock:
+                    self.cursor.execute(query, params)
+                    self.conn.commit()
+                return
+            except (psycopg.OperationalError, psycopg.InterfaceError) as e:
+                print(f"Attempt {attempt - 1}: Connection lost, Retrying")
+                time.sleep(2)
+                try:
+                    with self.lock:
+                        self._connect()
+                except Exception as reconnect_error:
+                    print(f"Reconnection Failed: {reconnect_error}")
+        raise Exception("Failed to execute query after 3 attempts")
 
     def executemany(self, query, params):
-        with self.lock:
-            self.cursor.executemany(query, params)
-            self.conn.commit()
+        for attempt in range(1, 4):
+            try:
+                with self.lock:
+                    self.cursor.executemany(query, params)
+                    self.conn.commit()
+                return
+            except (psycopg.OperationalError, psycopg.InterfaceError) as e:
+                print(f"Attempt {attempt - 1}: Connection lost, Retrying")
+                time.sleep(2)
+                try:
+                    with self.lock:
+                        self._connect()
+                except Exception as reconnect_error:
+                    print(f"Reconnection Failed: {reconnect_error}")
+        raise Exception("Failed to execute query after 3 attempts")
 
     def query(self, query, param=()):
-        with self.lock:
-            self.cursor.execute(query, param)
-            return self.cursor.fetchall()
+        for attempt in range(1, 4):
+            try:
+                with self.lock:
+                    self.cursor.execute(query, param)
+                    return self.cursor.fetchall()
+            except (psycopg.OperationalError, psycopg.InterfaceError) as e:
+                print(f"Attempt {attempt - 1}: Connection lost, Retrying")
+                time.sleep(2)
+                try:
+                    with self.lock:
+                        self._connect()
+                except Exception as reconnect_error:
+                    print(f"Reconnection Failed: {reconnect_error}")
+        raise Exception("Failed to execute query after 3 attempts")
 
     @contextmanager
     def transaction(self):
@@ -38,5 +86,8 @@ class Database:
                 yield self.cursor
                 self.conn.commit()
             except Exception as e:
-                self.conn.rollback()
+                try:
+                    self.conn.rollback()
+                except Exception:
+                    pass
                 raise

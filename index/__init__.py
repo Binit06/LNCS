@@ -18,7 +18,7 @@ class SearchIndex:
     # A page should be recrawled every 3 days to check for change in contents
     def should_crawl(self, url: str, recrawl_interval: timedelta = timedelta(days=3)) -> bool:
         rows = self.db.query(
-            "SELECT last_crawled_at FROM documents WHERE url = ?", (url,)
+            "SELECT last_crawled_at FROM documents WHERE url = %s", (url,)
         )
         if not rows or rows[0][0] is None:
             return True
