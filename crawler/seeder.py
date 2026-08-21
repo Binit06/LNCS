@@ -38,7 +38,20 @@ class VisitedURLs:
         return added
 
 class Seeder:
-    def __init__(self, base_url: str, seed_url: str, controller: "CrawlController", name: str, blocklist: list, user_agent: str, allowindb: list, rate_limit: float = 1.0) -> None:
+    def __init__(
+            self, 
+            base_url: str, 
+            seed_url: str, 
+            controller: "CrawlController", 
+            name: str, 
+            blocklist: list, 
+            user_agent: str, 
+            allowindb: list,
+            unidirection: bool,
+            unidirection_url_struct: str,
+            rate_limit: float = 1.0
+        ) -> None:
+
         self.base_url = base_url
         self.seed_url = seed_url
         self.seeder_name = name
@@ -48,6 +61,8 @@ class Seeder:
 
         self.blocklist = blocklist
         self.allowindb = allowindb
+        self.unidirection = unidirection
+        self.unidirection_url_struct = unidirection_url_struct
         self.robots = controller.robots
 
         self.user_agent = user_agent
@@ -83,9 +98,22 @@ class Seeder:
 
         self.index_page(task.url, page)
 
+        if self.unidirection and self.check_allowindb(task.url):
+            self.logger.info(f"Unidirectional Mode: Skipping link extraction for novel page {task.url}")
+            return
+
         for url in page["links"]:
             nurl = urljoin(task.site, url)
-            self.handle_url(nurl)
+            if self.unidirection:
+                is_structure = self.unidirection_url_struct and self.unidirection_url_struct in nurl
+                is_allowed = self.check_allowindb(nurl)
+
+                if is_structure or is_allowed:
+                    self.handle_url(nurl)
+                else:
+                    self.logger.debug(f"Unidirectional Mode: Ignoring link {nurl}")
+            else:
+                self.handle_url(nurl)
 
     def index_page(self, url: str, page: PageData) -> None:
         if not self.check_allowindb(url):
