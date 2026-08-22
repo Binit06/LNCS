@@ -1,5 +1,7 @@
 import sqlite3
+
 import psycopg
+
 
 def main():
     sqlite_conn = sqlite3.connect("search.db", check_same_thread=False)

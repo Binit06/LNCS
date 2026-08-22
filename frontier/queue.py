@@ -1,8 +1,10 @@
-from frontier.task import Task
-from typing import Optional
+
 import redis
 
-class TaskQueue():
+from frontier.task import Task
+
+
+class TaskQueue:
     def __init__(self) -> None:
         self.redis = redis.Redis(
             host="localhost",
@@ -24,7 +26,7 @@ class TaskQueue():
         self.redis.rpush(self._queue_name(task.site), task.to_json())
         self.redis.sadd(self.sites_key, task.site)
 
-    def get(self) -> Optional[Task]:
+    def get(self) -> Task | None:
         raw_sites = list(self.redis.smembers(self.sites_key))
         sites = sorted(self._decode(s) for s in raw_sites)
         if not sites:
@@ -41,7 +43,7 @@ class TaskQueue():
         if data is None:
             return None
 
-        queue_name, task_data = data
+        _queue_name, task_data = data
         return Task.from_json(task_data)
 
     def empty(self) -> bool:

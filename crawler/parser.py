@@ -1,14 +1,16 @@
 from __future__ import annotations
-from urllib.parse import urljoin
-from bs4 import BeautifulSoup
-from typing import TYPE_CHECKING
+
 import re
+from typing import TYPE_CHECKING
+from urllib.parse import urljoin
+
+from bs4 import BeautifulSoup
 
 if TYPE_CHECKING:
     from crawler.seeder import PageData
 
 class PageParser:
-    def parse(self, page_url: str, raw_html: str) -> "PageData":
+    def parse(self, page_url: str, raw_html: str) -> PageData:
         soup = BeautifulSoup(raw_html, "html.parser")
 
         title = self.get_title(soup)

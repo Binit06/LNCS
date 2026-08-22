@@ -1,15 +1,16 @@
 import hashlib
-from datetime import datetime
 from collections import Counter
+from datetime import datetime
 
-from index.tokenizer import tokenise, ngrams
+from index.tokenizer import ngrams, tokenise
+
 
 def add_page(db, url: str, novel_name: str, description: str, source: str, content: str):
     tokens = tokenise(content)
     term_count = Counter(tokens)
     doc_length = len(tokens)
     content_hash = hashlib.sha256(content.encode()).hexdigest()
-    now = datetime.utcnow().isoformat()
+    now = datetime.utcnow().isoformat()  # noqa: DTZ003
 
     existing = db.query("SELECT doc_id, content_hash FROM documents WHERE url = %s", (url,))
 

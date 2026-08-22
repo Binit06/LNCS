@@ -1,9 +1,11 @@
 # crawler/robots.py
 import logging
 import threading
-import requests
 from urllib.parse import urlparse
 from urllib.robotparser import RobotFileParser
+
+import requests
+
 
 class RobotsChecker:
     def __init__(self, user_agent: str) -> None:

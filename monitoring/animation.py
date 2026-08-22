@@ -11,13 +11,13 @@ Usage:
 """
 
 import time
-import redis
 
+import redis
+from rich.align import Align
 from rich.live import Live
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
-from rich.align import Align
 
 WEB_WIDTH = 60
 WEB_HEIGHT = 9
@@ -104,9 +104,7 @@ class CrawlerMonitor:
                     out.append("🕷" if active else "○", style="bold")
                 elif (col_i, row_i) in self.trail:
                     out.append("*", style="dim")
-                elif ch == "·":
-                    out.append(ch, style="dim")
-                elif ch == ".":
+                elif ch == "·" or ch == ".":
                     out.append(ch, style="dim")
                 else:
                     out.append(" ")

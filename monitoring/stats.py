@@ -1,5 +1,6 @@
-import redis
 import time
+
+import redis
 
 
 class StatsMonitor:

@@ -1,12 +1,12 @@
 import logging
-import os
 
+from dotenv_vault import load_dotenv
+
+from config.site_registry import SITE_REGISTRY
 from crawler.controller import CrawlController
 from crawler.seeder import Seeder
 from index import SearchIndex
 from storage.database import Database
-from config.site_registry import SITE_REGISTRY
-from dotenv_vault import load_dotenv
 
 load_dotenv()
 

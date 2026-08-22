@@ -1,5 +1,6 @@
 import re
 
+
 def tokenise(text: str):
     text = text.lower()
     return re.findall(r'\b[a-z0-9]+\b', text)

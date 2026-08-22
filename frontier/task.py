@@ -1,7 +1,6 @@
-from dataclasses import dataclass, field
-from typing import Dict
-
 import json
+from dataclasses import dataclass, field
+
 
 @dataclass
 class Task:
@@ -11,7 +10,7 @@ class Task:
     priority: int = 1
     retry_count: int = 0
     max_retries: int = 3
-    headers: Dict[str, str] = field(default_factory=dict)
+    headers: dict[str, str] = field(default_factory=dict)
 
     def to_json(self):
         return json.dumps({

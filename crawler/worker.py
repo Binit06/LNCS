@@ -1,23 +1,24 @@
 from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING
+
 import requests
 
-from typing import TYPE_CHECKING
 from frontier.task import Task
 
 if TYPE_CHECKING:
     from crawler.controller import CrawlController
 
 class FetcherWorker:
-    def __init__(self, worker_id: int, controller: "CrawlController") -> None:
+    def __init__(self, worker_id: int, controller: CrawlController) -> None:
         self.worker_id = worker_id
         self.controller = controller
 
         self.logger = logging.getLogger(f"worker.{worker_id}")
 
     def run(self):
-        self.logger.info(f"Started, waiting for url's")
+        self.logger.info("Started, waiting for url's")
         while True:
             task = self.controller.queue.get()
 
@@ -50,7 +51,7 @@ class FetcherWorker:
                         f"{response.status_code}"
                     )
                     self.handle_failure(task)
-            except Exception as e:
+            except Exception:
                 self.controller.stats.request_failed()
                 self.logger.exception(f"Error fetching {task.url}")
                 self.handle_failure(task)

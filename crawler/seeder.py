@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-import logging
 import hashlib
+import logging
+from datetime import date
+from typing import TYPE_CHECKING, TypedDict
+from urllib.parse import urljoin, urlparse
+
 from crawler.parser import PageParser
 from frontier.task import Task
-from datetime import date
-from urllib.parse import urljoin, urlparse
-from typing import TypedDict, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from crawler.controller import CrawlController
@@ -23,7 +24,7 @@ class VisitedURLs:
         self.namespace = namespace
 
     def _key(self) -> str:
-        return f"crawler:visited:{self.namespace}:{date.today().isoformat()}" #each day gets a new redis storage
+        return f"crawler:visited:{self.namespace}:{date.today().isoformat()}" #each day gets a new redis storage  # noqa: DTZ011
 
     def normalize(self, url: str) -> str:
         return url.split("#")[0].rstrip("/")
@@ -42,7 +43,7 @@ class Seeder:
             self, 
             base_url: str, 
             seed_url: str, 
-            controller: "CrawlController", 
+            controller: CrawlController, 
             name: str, 
             blocklist: list, 
             user_agent: str, 

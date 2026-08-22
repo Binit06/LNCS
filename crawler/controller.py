@@ -1,18 +1,18 @@
 import logging
 import threading
-import redis
 import time
 
+import redis
+
+from crawler.robots import RobotsChecker
+from crawler.seeder import Seeder
 from crawler.stats import CrawlStats
 from crawler.worker import FetcherWorker
-from crawler.seeder import Seeder
 from frontier.queue import TaskQueue
-from frontier.task import Task
 from frontier.rate_limitter import RateLimiter
-from crawler.robots import RobotsChecker
+from frontier.task import Task
 from index import SearchIndex
 
-from typing import Optional
 
 class CrawlController:
     def __init__(self, index: SearchIndex, worker_count=3) -> None:
@@ -47,7 +47,7 @@ class CrawlController:
         if seeder:
             self.logger.info(f"Detached seeder: {base_url}")
 
-    def get_seeder(self, site) -> Optional[Seeder]:
+    def get_seeder(self, site) -> Seeder | None:
         return self.seeders.get(site)
 
     def create_task(
@@ -101,7 +101,7 @@ class CrawlController:
             if self.queue.empty():
                 idle_since = idle_since or time.time()
                 if time.time() - idle_since > idle_grace_second:
-                    logging.info("Queue drained: Crawl is done")
+                    logging.info("Queue drained: Crawl is done")  # noqa: LOG015
                     break
             else:
                 idle_since = None
