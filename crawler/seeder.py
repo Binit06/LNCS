@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import re
+from collections.abc import Callable
 from datetime import date
 from typing import TYPE_CHECKING, TypedDict
 from urllib.parse import urljoin, urlparse
@@ -15,6 +17,7 @@ if TYPE_CHECKING:
 class PageData(TypedDict):
     title: str
     description: str
+    image: str
     slug: str
     links: list[str]
 
@@ -50,7 +53,9 @@ class Seeder:
             allowindb: list,
             unidirection: bool,
             unidirection_url_struct: str,
-            rate_limit: float = 1.0
+            pagination_template: str,
+            rate_limit: float = 1.0,
+            image_fix: Callable[[str], str] | None = None
         ) -> None:
 
         self.base_url = base_url
@@ -64,6 +69,8 @@ class Seeder:
         self.allowindb = allowindb
         self.unidirection = unidirection
         self.unidirection_url_struct = unidirection_url_struct
+        self.pagination_template = pagination_template
+        self.image_fix = image_fix
         self.robots = controller.robots
 
         self.user_agent = user_agent
@@ -75,6 +82,23 @@ class Seeder:
         self.visited = VisitedURLs(self.controller.redis, namespace=base_url)
 
     def seed(self):
+        if self.pagination_template:
+            self.logger.info("Seeding 100 paginated listing pages")
+            for page_num in range(1, 101):
+                url = urljoin(self.base_url, self.pagination_template.format(page=page_num))
+                task = self.controller.create_task(
+                    url=url,
+                    site=self.base_url,
+                    rate_limit=self.rate_limit,
+                    priority=1,
+                    headers={
+                        "User-Agent": self.user_agent
+                    }
+                )
+                self.visited.mark_visited(url)
+                self.controller.add_task(task)
+            return
+
         url = urljoin(self.base_url, self.seed_url)
         self.logger.info(f"Seeding initial URL: {url}")
         task = self.controller.create_task(
@@ -122,7 +146,11 @@ class Seeder:
 
         title = page["title"]
         description = page["description"]
+        image = page["image"]
         slug = page["slug"]
+
+        if image and self.image_fix:
+            image = self.image_fix(image)
 
         page_content = (
             f"{title} "
@@ -135,6 +163,7 @@ class Seeder:
             novel_name=title,
             description=description,
             source=self.seeder_name,
+            image_url=image,
             content=page_content
         )
 
@@ -166,6 +195,7 @@ class Seeder:
             url=url,
             site=self.base_url,
             rate_limit=self.rate_limit,
+            priority=0,
             headers={
                 "User-Agent": self.user_agent
             }
@@ -180,12 +210,5 @@ class Seeder:
         )
 
     def check_allowindb(self, url: str) -> bool:
-        path = urlparse(url).path.rstrip("/")
-
-        for allowed in self.allowindb:
-            allowed = allowed.rstrip("/")
-
-            if path == allowed or path.startswith(allowed + "/"):
-                return True
-
-        return False
+        path = urlparse(url).path.rstrip('/')
+        return any(re.fullmatch(pattern, path) for pattern in self.allowindb)

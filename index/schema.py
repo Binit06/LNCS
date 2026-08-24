@@ -6,6 +6,7 @@ def setup_schema(db):
             novel_name VARCHAR(255),
             description TEXT,
             source VARCHAR(255),
+            image_url TEXT,
             doc_length INTEGER DEFAULT 0,
             last_crawled_at VARCHAR(255),
             content_hash VARCHAR(255)

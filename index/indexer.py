@@ -5,7 +5,7 @@ from datetime import datetime
 from index.tokenizer import ngrams, tokenise
 
 
-def add_page(db, url: str, novel_name: str, description: str, source: str, content: str):
+def add_page(db, url: str, novel_name: str, description: str, source: str, image_url: str, content: str):
     tokens = tokenise(content)
     term_count = Counter(tokens)
     doc_length = len(tokens)
@@ -26,20 +26,20 @@ def add_page(db, url: str, novel_name: str, description: str, source: str, conte
             cursor.execute(
                 """
                 UPDATE documents
-                SET novel_name = %s, description = %s, source = %s,
+                SET novel_name = %s, description = %s, source = %s, image_url = %s
                     doc_length = %s, content_hash = %s, last_crawled_at = %s
                 WHERE doc_id = %s
                 """,
-                (novel_name, description, source, doc_length, content_hash, now, doc_id)
+                (novel_name, description, source, image_url, doc_length, content_hash, now, doc_id)
             )
         else:
             cursor.execute(
                 """
-                INSERT INTO documents(url, novel_name, description, source, doc_length, last_crawled_at, content_hash)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO documents(url, novel_name, description, source, image_url, doc_length, last_crawled_at, content_hash)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING doc_id
                 """,
-                (url, novel_name, description, source, doc_length, now, content_hash)
+                (url, novel_name, description, source, image_url, doc_length, now, content_hash)
             )
 
             doc_id = cursor.fetchone()[0]

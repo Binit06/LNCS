@@ -15,6 +15,7 @@ class PageParser:
 
         title = self.get_title(soup)
         description = self.get_description(soup)
+        image = self.get_image(soup)
 
         slug = page_url.rstrip("/").split("/")[-1]
         slug = re.sub(r"[-_]", " ", slug)
@@ -36,6 +37,7 @@ class PageParser:
         return {
             "title": title,
             "description": description,
+            "image": image,
             "slug": slug,
             "links": links
         }
@@ -66,4 +68,18 @@ class PageParser:
             value = self.get_meta(soup, source)
             if value:
                 return value
+        return ""
+    
+    def get_image(self, soup) -> str:
+        for source in ("og:image", "twitter:image", "twitter:image:src"):
+            value = self.get_meta(soup, source)
+            if value:
+                return value
+        link = soup.find("link", rel="image_src")
+        if link and link.get("href"):
+            return link["href"]
+        
+        img = soup.find("img")
+        if img and img.get("src"):
+            return img["src"]
         return ""

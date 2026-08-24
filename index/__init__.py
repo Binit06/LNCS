@@ -10,8 +10,8 @@ class SearchIndex:
         self.db = db
         setup_schema(db)
 
-    def add_page(self, url, novel_name, description, source, content):
-        return _add_page(self.db, url, novel_name, description, source, content)
+    def add_page(self, url, novel_name, description, source, image_url, content):
+        return _add_page(self.db, url, novel_name, description, source, image_url, content)
 
     # A page should be recrawled every 3 days to check for change in contents
     def should_crawl(self, url: str, recrawl_interval: timedelta = timedelta(days=3)) -> bool:

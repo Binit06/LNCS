@@ -1,4 +1,3 @@
-
 import redis
 
 from frontier.task import Task
@@ -14,7 +13,8 @@ class TaskQueue:
 
         self.sites_key = "crawler:active_sites"
         self.dead_letter_name = "crawler:dead_letter"
-        self.rotaion_key = "crawler:rotation"
+        self.rotation_key = "crawler:rotation"
+        self.seq_key = "crawler:seq"
 
     def _queue_name(self, site: str) -> str:
          return f"crawler:queue:{site}"
@@ -23,7 +23,9 @@ class TaskQueue:
         return value.decode() if isinstance(value, bytes) else value
 
     def add(self, task: Task):
-        self.redis.rpush(self._queue_name(task.site), task.to_json())
+        seq = self.redis.incr(self.seq_key)
+        score = task.priority * 1_000_000_000 + seq
+        self.redis.zadd(self._queue_name(task.site), {task.to_json(): score})
         self.redis.sadd(self.sites_key, task.site)
 
     def get(self) -> Task | None:
@@ -34,16 +36,15 @@ class TaskQueue:
 
         sites.sort()
 
-        offset = self.redis.incr(self.rotaion_key) % len(sites)
+        offset = self.redis.incr(self.rotation_key) % len(sites)
         rotated = sites[offset:] + sites[:offset]
-
         queue_names = [self._queue_name(site) for site in rotated]
 
-        data = self.redis.blpop(queue_names, timeout=1)
+        data = self.redis.bzpopmin(queue_names, timeout=1)
         if data is None:
             return None
 
-        _queue_name, task_data = data
+        _queue_name, task_data, _score = data
         return Task.from_json(task_data)
 
     def empty(self) -> bool:
@@ -52,9 +53,7 @@ class TaskQueue:
     def size(self) -> int:
         raw_sites = self.redis.smembers(self.sites_key)
         sites = (self._decode(s) for s in raw_sites)
-        return sum(self.redis.llen(self._queue_name(site)) for site in sites)
+        return sum(self.redis.zcard(self._queue_name(site)) for site in sites)
 
     def dead_letter(self, task: Task):
-        """Park permanently-failing tasks for later inspection instead of
-        dropping them silently."""
         self.redis.rpush(self.dead_letter_name, task.to_json())
