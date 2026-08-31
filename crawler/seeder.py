@@ -1,18 +1,18 @@
 from __future__ import annotations
 
-import hashlib
 import logging
 import re
 from collections.abc import Callable
-from datetime import date
 from typing import TYPE_CHECKING, TypedDict
 from urllib.parse import urljoin, urlparse
 
 from crawler.parser import PageParser
 from frontier.task import Task
+from frontier.visited import VisitedURLs
 
 if TYPE_CHECKING:
     from crawler.controller import CrawlController
+
 
 class PageData(TypedDict):
     title: str
@@ -21,25 +21,13 @@ class PageData(TypedDict):
     slug: str
     links: list[str]
 
-class VisitedURLs:
-    def __init__(self, redis_client, namespace: str) -> None:
-        self.redis = redis_client
-        self.namespace = namespace
 
-    def _key(self) -> str:
-        return f"crawler:visited:{self.namespace}:{date.today().isoformat()}" #each day gets a new redis storage  # noqa: DTZ011
+class SiteSelectors(TypedDict):
+    title_selector: str
+    description_selector: str
+    image_selector: str
+    image_att: str
 
-    def normalize(self, url: str) -> str:
-        return url.split("#")[0].rstrip("/")
-
-    def _hash(self, url: str) -> str:
-        return hashlib.sha1(self.normalize(url).encode()).hexdigest()
-
-    def mark_visited(self, url: str) -> bool:
-        key = self._key()
-        added = bool(self.redis.sadd(key, self._hash(url)))
-        self.redis.expire(key, 172800) # today's storage expires yesterday
-        return added
 
 class Seeder:
     def __init__(
@@ -53,7 +41,8 @@ class Seeder:
             allowindb: list,
             unidirection: bool,
             unidirection_url_struct: str,
-            pagination_template: str,
+            pagination_template: str | None,
+            selectors: SiteSelectors,
             rate_limit: float = 1.0,
             image_fix: Callable[[str], str] | None = None
         ) -> None:
@@ -70,6 +59,7 @@ class Seeder:
         self.unidirection = unidirection
         self.unidirection_url_struct = unidirection_url_struct
         self.pagination_template = pagination_template
+        self.selectors = selectors
         self.image_fix = image_fix
         self.robots = controller.robots
 
@@ -113,12 +103,18 @@ class Seeder:
 
         self.controller.add_task(task)
 
+    def index_only(self, task: Task, raw_html: str) -> None:
+        self.logger.info(f"Manual indexing: {task.url}")
+        page = self.parser.parse(task.url, raw_html, self.selectors)
+        self.index_page(task.url, page)
+
     def process(self, task: Task, raw_html: str) -> None:
         self.logger.info(f"Parsing: {task.url}")
 
         page: PageData = self.parser.parse(
             task.url,
-            raw_html
+            raw_html,
+            self.selectors
         )
 
         self.index_page(task.url, page)

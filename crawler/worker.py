@@ -11,9 +11,10 @@ if TYPE_CHECKING:
     from crawler.controller import CrawlController
 
 class FetcherWorker:
-    def __init__(self, worker_id: int, controller: CrawlController) -> None:
+    def __init__(self, worker_id: int, controller: CrawlController, mode="crawl") -> None:
         self.worker_id = worker_id
         self.controller = controller
+        self.mode = mode
 
         self.logger = logging.getLogger(f"worker.{worker_id}")
 
@@ -27,7 +28,7 @@ class FetcherWorker:
 
             self.logger.info(f"Fetching: {task.url}")
             self.controller.stats.request_started()
-            self.controller.rate_limitter.wait(task.site, task.rate_limit)
+            self.controller.rate_limiter.wait(task.site, task.rate_limit)
 
             try:
                 response = requests.get(task.url, headers=task.headers, timeout=3)
@@ -38,10 +39,10 @@ class FetcherWorker:
                     seeder = self.controller.get_seeder(task.site)
 
                     if seeder:
-                        seeder.process(
-                            task,
-                            response.text
-                        )
+                        if self.mode == "index":
+                            seeder.index_only(task, response.text)
+                        else:
+                            seeder.process(task, response.text)
                     else:
                         self.logger.error(f"No seeder found for {task.site}")
                 else:

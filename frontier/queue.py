@@ -1,23 +1,30 @@
 import redis
 
+from config.settings import (
+    REDIS_KEY_ACTIVE_SITES,
+    REDIS_KEY_DEAD_LETTER,
+    REDIS_KEY_ROTATION,
+    REDIS_KEY_SEQ,
+    REDIS_KEY_QUEUE_TEMPLATE,
+)
 from frontier.task import Task
 
 
 class TaskQueue:
-    def __init__(self) -> None:
-        self.redis = redis.Redis(
-            host="localhost",
-            port=6379,
-            decode_responses=True
-        )
+    def __init__(self, redis_client=None, key_prefix="crawler") -> None:
+        self.redis = redis_client or redis.Redis(host="localhost", port=6379, decode_responses=True)
 
-        self.sites_key = "crawler:active_sites"
-        self.dead_letter_name = "crawler:dead_letter"
-        self.rotation_key = "crawler:rotation"
-        self.seq_key = "crawler:seq"
+        self.key_prefix = key_prefix
+
+        self.sites_key = REDIS_KEY_ACTIVE_SITES
+        self.dead_letter_name = REDIS_KEY_DEAD_LETTER
+        self.rotation_key = REDIS_KEY_ROTATION
+        self.seq_key = REDIS_KEY_SEQ
 
     def _queue_name(self, site: str) -> str:
-         return f"crawler:queue:{site}"
+        if self.key_prefix != "crawler":
+            return f"{self.key_prefix}:queue:{site}"
+        return REDIS_KEY_QUEUE_TEMPLATE.format(site=site)
 
     def _decode(self, value: bytes | str) -> str:
         return value.decode() if isinstance(value, bytes) else value

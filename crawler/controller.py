@@ -1,34 +1,36 @@
 import logging
 import threading
 import time
-
-import redis
+from typing import Protocol
 
 from crawler.robots import RobotsChecker
 from crawler.seeder import Seeder
 from crawler.stats import CrawlStats
 from crawler.worker import FetcherWorker
 from frontier.queue import TaskQueue
-from frontier.rate_limitter import RateLimiter
+from frontier.rate_limiter import RateLimiter
 from frontier.task import Task
 from index import SearchIndex
 
 
+class TaskQueueProtocol(Protocol):
+    def add(self, task: Task) -> None: ...
+    def get(self) -> Task | None: ...
+    def empty(self) -> bool: ...
+    def dead_letter(self, task: Task) -> None: ...
+
+
 class CrawlController:
-    def __init__(self, index: SearchIndex, worker_count=3) -> None:
+    def __init__(self, index: SearchIndex, worker_count=3, redis=None, queue: TaskQueueProtocol | None = None) -> None:
         self.logger = logging.getLogger("controller")
 
-        self.queue = TaskQueue()
+        self.queue : TaskQueueProtocol = queue or TaskQueue(redis_client=redis)
         self.index = index
 
-        self.redis = redis.Redis(
-            host="localhost",
-            port=6379,
-            decode_responses=True
-        )
+        self.redis = redis
 
         self.stats = CrawlStats(self.redis)
-        self.rate_limitter = RateLimiter(self.redis)
+        self.rate_limiter = RateLimiter(self.redis)
         self.robots = RobotsChecker(user_agent="HALOVOID/1.0 (+https://github.com/Binit06)")
 
         self.seeders: dict[str, Seeder] = {}
@@ -69,13 +71,14 @@ class CrawlController:
     def add_task(self, task: Task):
         self.queue.add(task)
 
-    def start_workers(self):
+    def start_workers(self, mode = "crawl"):
         self.running = True
 
         for i in range(self.worker_count):
             worker = FetcherWorker(
                 worker_id=i + 1,
-                controller = self
+                controller = self,
+                mode = mode
             )
 
             thread = threading.Thread(

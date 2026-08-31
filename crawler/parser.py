@@ -7,15 +7,15 @@ from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 
 if TYPE_CHECKING:
-    from crawler.seeder import PageData
+    from crawler.seeder import PageData, SiteSelectors
 
 class PageParser:
-    def parse(self, page_url: str, raw_html: str) -> PageData:
+    def parse(self, page_url: str, raw_html: str, selector: SiteSelectors) -> PageData:
         soup = BeautifulSoup(raw_html, "html.parser")
 
-        title = self.get_title(soup)
-        description = self.get_description(soup)
-        image = self.get_image(soup)
+        title = self.get_text(soup, selector.get("title_selector"))
+        description = self.get_text(soup, selector.get("description_selector"))
+        image = self.get_image(soup, selector.get("image_selector"), selector.get("image_att") or "src")
 
         slug = page_url.rstrip("/").split("/")[-1]
         slug = re.sub(r"[-_]", " ", slug)
@@ -41,45 +41,21 @@ class PageParser:
             "slug": slug,
             "links": links
         }
+    def get_text(self, soup, selector: str | None) -> str:
+        if not selector:
+            return ""
+        el = soup.select_one(selector)
+        if not el:
+            return ""
+        return el.get_text(strip=True)
     
-    def get_meta(self, soup, property_name):
-        tag = soup.find("meta", property=property_name)
-        if tag and tag.get("content"):
-            return tag.get("content")
-        tag = soup.find("meta", attrs={"name": property_name})
-        if tag and tag.get("content"):
-            return tag.get("content")
-        return ""
-
-    def get_title(self, soup) -> str:
-        for source in ("og:title", "twitter:title"):
-            value = self.get_meta(soup, source)
-            if value:
-                return value
-        if soup.title and soup.title.string:
-            return soup.title.string.strip()
-        h1 = soup.find("h1")
-        if h1:
-            return h1.get_text(strip=True)
-        return ""
-
-    def get_description(self, soup) -> str:
-        for source in ("og:description", "twitter:description", "description"):
-            value = self.get_meta(soup, source)
-            if value:
-                return value
-        return ""
-    
-    def get_image(self, soup) -> str:
-        for source in ("og:image", "twitter:image", "twitter:image:src"):
-            value = self.get_meta(soup, source)
-            if value:
-                return value
-        link = soup.find("link", rel="image_src")
-        if link and link.get("href"):
-            return link["href"]
-        
-        img = soup.find("img")
-        if img and img.get("src"):
-            return img["src"]
-        return ""
+    def get_image(self, soup, selector: str | None, attr: str = "src") -> str:
+        if not selector:
+            return ""
+        el = soup.select_one(selector)
+        if not el:
+            return ""
+        value = el.get(attr)
+        if isinstance(value, list):
+            value = value[0] if value else None
+        return value or ""

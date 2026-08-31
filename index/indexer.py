@@ -26,7 +26,7 @@ def add_page(db, url: str, novel_name: str, description: str, source: str, image
             cursor.execute(
                 """
                 UPDATE documents
-                SET novel_name = %s, description = %s, source = %s, image_url = %s
+                SET novel_name = %s, description = %s, source = %s, image_url = %s,
                     doc_length = %s, content_hash = %s, last_crawled_at = %s
                 WHERE doc_id = %s
                 """,
